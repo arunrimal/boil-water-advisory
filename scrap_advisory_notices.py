@@ -30,7 +30,7 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
         response = requests.get(base_url, headers=headers, timeout=30)
         response.raise_for_status()
         
-        print(f"✓ Page loaded successfully (Status: {response.status_code})\n")
+        print(f" Page loaded successfully (Status: {response.status_code})\n")
         
         
         # Parse HTML
@@ -116,10 +116,10 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
         return unique_urls
         
     except requests.RequestException as e:
-        print(f"✗ Error fetching page: {e}")
+        print(f" Error fetching page: {e}")
         return []
     except Exception as e:
-        print(f"✗ Error parsing page: {e}")
+        print(f" Error parsing page: {e}")
         return []
 
 
@@ -139,13 +139,13 @@ def save_urls_to_files(urls, json_file='bwa_urls.json', txt_file='bwa_urls.txt')
     # Save as JSON (with metadata)
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump(urls, f, indent=2, ensure_ascii=False)
-    print(f"✓ Saved detailed data to: {json_file}")
+    print(f" Saved detailed data to: {json_file}")
     
     # Save as simple text list (just URLs)
     with open(txt_file, 'w', encoding='utf-8') as f:
         for item in urls:
             f.write(f"{item['url']}\n")
-    print(f"✓ Saved URL list to: {txt_file}")
+    print(f" Saved URL list to: {txt_file}")
     
     print(f"\nTotal URLs saved: {len(urls)}")
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         if url_list:
             save_urls_to_files(url_list, json_file=f'bwa_urls_page_{i+1}.json', txt_file=f'bwa_urls_page_{i+1}.txt')
         else:
-            print("✗ No URLs collected on this page. Please check the website structure.")
+            print(" No URLs collected on this page. Please check the website structure.")
         
         time.sleep(2)  # sleep time to avoid overwhelming the server
     url_list = scrape_bwa_urls()
@@ -176,8 +176,8 @@ if __name__ == "__main__":
     # Save to files
     if url_list:
         save_urls_to_files(url_list)
-        print("\n✓ Phase 1 Complete! Website URLs collected and saved successfully.")
+        print("\n Phase 1 Complete! Website URLs collected and saved successfully.")
     else:
-        print("\n✗ No URLs collected. Please check the website structure.")
+        print("\n No URLs collected. Please check the website structure.")
     
     print("\n" + "="*60 + "\n")
