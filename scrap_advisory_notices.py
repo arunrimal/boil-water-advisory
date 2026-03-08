@@ -8,6 +8,14 @@ from bs4 import BeautifulSoup
 import json
 import time
 from datetime import datetime
+import logging
+
+# Seting up logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="[Info] %(message)s",
+    force=True
+)
 
 def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
     """
@@ -16,8 +24,8 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
     Returns:
         list: List of dictionaries containing URL and basic metadata
     """
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting URL collection...")
-    print(f"Target URL: {base_url}\n")
+    logging.info(f"[{datetime.now().strftime('%H:%M:%S')}] Starting URL collection...")
+    logging.info(f"Target URL: {base_url}\n")
     
     # Add headers to mimic a browser request
     headers = {
@@ -26,11 +34,12 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
     
     try:
         # Fetch the main page
-        print("Fetching landing page...")
+        logging.info("Fetching landing page...")
+        logging.info(f"Sending GET request to: {base_url}")
         response = requests.get(base_url, headers=headers, timeout=30)
         response.raise_for_status()
         
-        print(f" Page loaded successfully (Status: {response.status_code})\n")
+        logging.info(f" Page loaded successfully (Status: {response.status_code})\n")
         
         
         # Parse HTML
@@ -42,15 +51,15 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
 
         # Method 1: Look for links in CivicAlerts structure
         alert_post = soup.find_all('div', class_='col-sm-8 col-md-9 d-flex flex-column justify-content-between')
-        print(f"Found alert_post: {len(alert_post)}\n")
+        logging.info(f"Found alert_post: {len(alert_post)}\n")
 
         for link in alert_post:
-            # Find anchor tags within each div
+            # Finding anchor tags within each div
             anchor = link.find('a', href=True)
             if anchor:
                 href = anchor.get('href', '')
                 
-                # Build full URL
+                # Building up full URL based on href structure
                 if href.startswith('/'):
                     full_url = f"https://www.kdhe.ks.gov{href}"
                 elif href.startswith('http'):
@@ -58,26 +67,24 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
                 else:
                     full_url = f"https://www.kdhe.ks.gov/{href}"
                 
-                # Extract paragraph text
+                # Now extracting the paragraph text
                 paragraph = link.find('p', class_='mb-0')
                 paragraph_text = paragraph.get_text(strip=True) if paragraph else ""
                 confined_paragraph = paragraph_text.split('For consumer questions,')[0] if 'For consumer questions,' in paragraph_text else paragraph_text
                 
-                # Extract any visible text/title
-                title = anchor.get_text(strip=True)  # Get text from anchor, not the whole div
+                # Extracting any visible text/title
+                title = anchor.get_text(strip=True) 
                 
-                # Extract posted date from footer
+                # Extracting posted date from footer
                 posted_on = None
                 footer_post = link.find('div', class_='article-list-footer mt-auto')  # find on 'link', not 'alert_post'
                 
                 if footer_post:
-                    # Get all divs within footer
+                    # Geting all divs within footer
                     footer_divs = footer_post.find_all('div')
                     if len(footer_divs) >= 2:
                         posted_on = footer_divs[1].get_text(strip=True)
-                    # Alternatively, if it's always the second div:
-                    # posted_on = footer_post.find_all('div')[1].get_text(strip=True) if len(footer_post.find_all('div')) >= 2 else None
-                
+
                 urls_collected.append({
                     'url': full_url,
                     'title': title,
@@ -86,7 +93,7 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
                     'scraped_at': datetime.now().isoformat()
                 })
             
-        # Remove duplicates based on URL
+        # Remove any duplicates based on URL so creating a set to track seen URLs
         unique_urls = []
         seen_urls = set()
         
@@ -95,31 +102,31 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
                 seen_urls.add(item['url'])
                 unique_urls.append(item)
         
-        print(f"{'='*60}")
-        print(f"COLLECTION SUMMARY")
-        print(f"{'='*60}")
-        print(f"Total links found: {len(urls_collected)}")
-        print(f"Unique URLs: {len(unique_urls)}")
-        print(f"{'='*60}\n")
+        logging.info(f"{'='*60}")
+        logging.info(f"COLLECTION SUMMARY")
+        logging.info(f"{'='*60}")
+        logging.info(f"Total links found: {len(urls_collected)}")
+        logging.info(f"Unique URLs: {len(unique_urls)}")
+        logging.info(f"{'='*60}\n")
         
         # Display first few URLs as preview
         if unique_urls:
-            print("Preview of collected URLs:")
+            logging.info("Preview of collected URLs:")
             for i, item in enumerate(unique_urls[:5], 1):
-                print(f"{i}. {item['title'][:60]}...")
-                print(f"   URL: {item['url']}")
-                print(f"   ID: {item['posted_on']}\n")
+                logging.info(f"{i}. {item['title'][:60]}...")
+                logging.info(f"   URL: {item['url']}")
+                logging.info(f"   ID: {item['posted_on']}\n")
             
             if len(unique_urls) > 5:
-                print(f"... and {len(unique_urls) - 5} more URLs\n")
+                logging.info(f"... and {len(unique_urls) - 5} more URLs\n")
         
         return unique_urls
         
     except requests.RequestException as e:
-        print(f" Error fetching page: {e}")
+        logging.error(f" Error fetching page: {e}")
         return []
     except Exception as e:
-        print(f" Error parsing page: {e}")
+        logging.error(f" Error parsing page: {e}")
         return []
 
 
@@ -139,28 +146,28 @@ def save_urls_to_files(urls, json_file='bwa_urls.json', txt_file='bwa_urls.txt')
     # Save as JSON (with metadata)
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump(urls, f, indent=2, ensure_ascii=False)
-    print(f" Saved detailed data to: {json_file}")
+    logging.info(f" Total URLs saved to JSON: {len(urls)}")
     
     # Save as simple text list (just URLs)
     with open(txt_file, 'w', encoding='utf-8') as f:
         for item in urls:
             f.write(f"{item['url']}\n")
-    print(f" Saved URL list to: {txt_file}")
+    logging.info(f" Saved URL list to: {txt_file}")
     
-    print(f"\nTotal URLs saved: {len(urls)}")
+    logging.info(f"\nTotal URLs saved: {len(urls)}")
 
 
 if __name__ == "__main__":
-    print("\n" + "="*60)
-    print("KDHE BOIL WATER ADVISORY - URL COLLECTOR")
-    print("Phase 1: Collecting all notice URLs")
-    print("="*60 + "\n")
+    logging.info("\n" + "="*60)
+    logging.info("KDHE BOIL WATER ADVISORY - URL COLLECTOR")
+    logging.info("Phase 1: Collecting all notice URLs")
+    logging.info("="*60 + "\n")
     
     base_url = "https://www.kdhe.ks.gov/m/newsflash/Home/Items?cat=29&page={}&sortBy=Category"
 
     # Scrape URLs
     for i in range(0, 8):  # Adjust range for more pages if needed
-        print(f"\n--- Scraping page {i+1} ---\n")
+        logging.info(f"\n--- Scraping page {i+1} ---\n")
         page_url = base_url.format(i)
         url_list = scrape_bwa_urls(page_url)
         
@@ -168,7 +175,7 @@ if __name__ == "__main__":
         if url_list:
             save_urls_to_files(url_list, json_file=f'bwa_urls_page_{i+1}.json', txt_file=f'bwa_urls_page_{i+1}.txt')
         else:
-            print(" No URLs collected on this page. Please check the website structure.")
+            logging.info(" No URLs collected on this page. Please check the website structure.")
         
         time.sleep(2)  # sleep time to avoid overwhelming the server
     url_list = scrape_bwa_urls()
@@ -176,8 +183,8 @@ if __name__ == "__main__":
     # Save to files
     if url_list:
         save_urls_to_files(url_list)
-        print("\n Phase 1 Complete! Website URLs collected and saved successfully.")
+        logging.info("\n Phase 1 Complete! Website URLs collected and saved successfully.")
     else:
-        print("\n No URLs collected. Please check the website structure.")
+        logging.info("\n No URLs collected. Please check the website structure.")
     
-    print("\n" + "="*60 + "\n")
+    logging.info("\n" + "="*60 + "\n")
