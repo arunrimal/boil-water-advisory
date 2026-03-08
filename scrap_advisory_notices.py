@@ -3,6 +3,7 @@ Phase 1: Collect all Boil Water Advisory/Order URLs from KDHE website
 Author: Arun Rimal
 """
 
+import os
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -46,10 +47,10 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
         soup = BeautifulSoup(response.content, 'html.parser')
         # print("this is soup: ",soup)
         
-        # Find all boil water advisory/order links
+        # For the list of all boil water advisory/order links
         urls_collected = []
 
-        # Method 1: Look for links in CivicAlerts structure
+        # Looking for links in CivicAlerts structure
         alert_post = soup.find_all('div', class_='col-sm-8 col-md-9 d-flex flex-column justify-content-between')
         logging.info(f"Found alert_post: {len(alert_post)}\n")
 
@@ -130,7 +131,7 @@ def scrape_bwa_urls(base_url="https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29"):
         return []
 
 
-def save_urls_to_files(urls, json_file='bwa_urls.json', txt_file='bwa_urls.txt'):
+def save_urls_to_files(urls, json_file='scraped_json/bwa_urls.json', txt_file='bwa_urls.txt'):
     """
     Save collected URLs to both JSON and TXT files
     
@@ -162,29 +163,38 @@ if __name__ == "__main__":
     logging.info("KDHE BOIL WATER ADVISORY - URL COLLECTOR")
     logging.info("Phase 1: Collecting all notice URLs")
     logging.info("="*60 + "\n")
+
+    os.makedirs("scraped_json", exist_ok=True)
+    output_dir = "scraped_json"
     
     base_url = "https://www.kdhe.ks.gov/m/newsflash/Home/Items?cat=29&page={}&sortBy=Category"
 
-    # Scrape URLs
-    for i in range(0, 8):  # Adjust range for more pages if needed
-        logging.info(f"\n--- Scraping page {i+1} ---\n")
+    # Scraping URLs until no more pages are available
+
+    i = 0
+
+    while True:
         page_url = base_url.format(i)
+
+        response = requests.get(page_url)
+
+        if response.status_code != 200:
+            logging.info("Stopping: page not available")
+            break
+
         url_list = scrape_bwa_urls(page_url)
-        
-        # Save to files
-        if url_list:
-            save_urls_to_files(url_list, json_file=f'bwa_urls_page_{i+1}.json', txt_file=f'bwa_urls_page_{i+1}.txt')
-        else:
-            logging.info(" No URLs collected on this page. Please check the website structure.")
-        
-        time.sleep(2)  # sleep time to avoid overwhelming the server
-    url_list = scrape_bwa_urls()
-    
-    # Save to files
-    if url_list:
-        save_urls_to_files(url_list)
-        logging.info("\n Phase 1 Complete! Website URLs collected and saved successfully.")
-    else:
-        logging.info("\n No URLs collected. Please check the website structure.")
-    
-    logging.info("\n" + "="*60 + "\n")
+
+        if not url_list:
+            logging.info("Stopping: no advisories found")
+            break
+
+        save_urls_to_files(
+            url_list,
+            json_file=f'{output_dir}/bwa_urls_page_{i+1}.json',
+            txt_file=f'{output_dir}/bwa_urls_page_{i+1}.txt'
+        )
+
+        i += 1
+        time.sleep(2)
+
+    logging.info("\nPhase 1 Complete! All pages scraped successfully.")
