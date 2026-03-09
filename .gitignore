@@ -32,7 +32,16 @@ venv.bak/
 
 # Data files
 Data/*
+Data_archive/*
+
+# Keep folder structure
 !Data/.gitkeep
+
+# Ignore generated data
+data/*
+
+# Keep folder structure
+!data/**/.gitkeep
 
 
 # IDE
