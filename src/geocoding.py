@@ -40,7 +40,7 @@ logger = logging.getLogger("kdhe_pipeline")
 
 def load_data(path):
     """
-    Loads the final geospatial Excel file.
+    This Function loads the final geospatial Excel file.
     """
     logger.info(f"Loading data from: {path}")
     df = pd.read_excel(path)
@@ -50,7 +50,7 @@ def load_data(path):
 
 def geocode_city(geolocator, city, county):
     """
-    Geocodes a single city + county combination using Nominatim.
+    This Function geocodes a single city + county combination using Nominatim.
     Returns (lat, lon) or (None, None) if geocoding fails.
     """
     try:
@@ -66,7 +66,7 @@ def geocode_city(geolocator, city, county):
 
 def geocode_all(df):
     """
-    Geocodes all rows using the 'Cities Served' and 'county_clean' columns.
+    This Function geocodes all rows using the 'Cities Served' and 'county_clean' columns.
     Adds 'lat' and 'lon' columns to the dataframe.
     Respects API rate limits with a configurable delay between requests.
     """
@@ -109,7 +109,7 @@ def geocode_all(df):
 
 def filter_valid_coordinates(df):
     """
-    Keeps only rows with valid, non-null, non-zero coordinates.
+    This Function keeps only rows with valid, non-null, non-zero coordinates.
     """
     valid = df[
         df["lat"].notnull() & df["lon"].notnull() &
@@ -122,7 +122,7 @@ def filter_valid_coordinates(df):
 
 def create_geodataframe(df):
     """
-    Creates a GeoDataFrame from lat/lon columns,
+    This Function creates a GeoDataFrame from lat/lon columns,
     projects to UTM Zone 14N, and adds a buffer geometry column.
     """
     logger.info("Creating point geometries...")
@@ -141,7 +141,7 @@ def create_geodataframe(df):
 
 def save_geodataframe(gdf, path):
     """
-    Saves the GeoDataFrame to a GeoPackage file.
+    This Function saves the GeoDataFrame to a GeoPackage file.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     gdf.to_file(path, driver="GPKG")
@@ -156,23 +156,23 @@ def main():
     logger.info("Phase 7: Geocoding city locations")
     logger.info("=" * 60)
 
-    # Step 1: Load data
+    # Step 1: To Load data
     df = load_data(INPUT_FILE)
 
-    # Step 2: Geocode all rows
+    # Step 2: To geocode all rows
     df = geocode_all(df)
 
-    # Step 3: Filter to valid coordinates only
+    # Step 3: To filter to valid coordinates only
     df_valid = filter_valid_coordinates(df)
 
     if df_valid.empty:
         logger.error("No valid coordinates found — aborting.")
         return
 
-    # Step 4: Create GeoDataFrame with point geometry and buffers
+    # Step 4: To create GeoDataFrame with point geometry and buffers
     gdf = create_geodataframe(df_valid)
 
-    # Step 5: Save to GeoPackage
+    # Step 5: To save to GeoPackage
     save_geodataframe(gdf, OUTPUT_FILE)
 
     logger.info("=" * 60)
