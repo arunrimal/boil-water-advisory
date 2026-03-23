@@ -28,12 +28,6 @@ Schedule
 --------
 It runs on manual trigger
 
-References
-----------
-KDHE Disruption in Water Service : https://www.kdhe.ks.gov/468/Disruption-in-Water-Service
-Boil Water Bulletin              : https://www.kdhe.ks.gov/CivicAlerts.aspx?CID=29
-Consumer Confidence Reports      : https://www.kdhe.ks.gov/531/Consumer-Confidence-Reports
-
 """
 
 
