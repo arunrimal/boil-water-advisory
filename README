@@ -10,3 +10,8 @@ This pipeline project that collects and maps boil water notices published by KDH
 
 ---
 
+## Project Overview
+
+KDHE publishes boil water notices whenever a water supply in Kansas may be 
+contaminated. This pipeline collects those notices, extracts the reasons behind 
+them, and maps the address to a geometry(geocoding) and later geocoded dataset is used to map the affected locations across the state.
