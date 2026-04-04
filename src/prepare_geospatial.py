@@ -5,17 +5,23 @@ and fuzzy matching, classifies advisory categories using Gemini LLM,
 and prepares the final dataset for geospatial analysis.
 """
 
+import os
 import re
 import ast
 import logging
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
+from dotenv import load_dotenv
 import google.generativeai as genai
 from rapidfuzz import process, fuzz
 from logger_config import setup_logger
 
 tqdm.pandas()   
+
+load_dotenv()  # to read the .env file
+
+# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # -------- Configuration --------
 
@@ -267,12 +273,13 @@ def normalize_name(text):
     return text
 
 
-def load_pws_data(path, skiprows):
+def load_pws_data(path, skiprows=0):
     """
     This Function loads and normalizes the PWS reference Excel file.
     """
     logger.info(f"Loading PWS data from: {path}")
-    pws_df = pd.read_excel(path, skiprows=skiprows)
+    # pws_df = pd.read_excel(path, skiprows=skiprows)
+    pws_df = pd.read_csv(path)
 
     pws_df["PWS_clean"] = (
         pws_df["PWS Name"]
@@ -458,10 +465,32 @@ RENAME_COLS = {
     "# of Violations"                         : "No._of_Violations",
 }
 
+def validate_api_key(api_key: str) -> bool:
+    if not api_key:
+        logger.error("GEMINI_API_KEY is missing — check your .env file")
+        return False
+    
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
+        model.generate_content("test")
+        logger.info("Gemini API key validated successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Gemini API key validation failed: {e}")
+        return False
+
 
 # -------- Main --------
 
 def main():
+
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        
+    if not validate_api_key(GEMINI_API_KEY):
+        raise SystemExit("Invalid or missing API key — stopping pipeline")
+
+
     logger.info("=" * 60)
     logger.info("KDHE BOIL WATER ADVISORY - GEOSPATIAL DATA PREPARATION")
     logger.info("Phase 6: Preparing data for geospatial analysis")

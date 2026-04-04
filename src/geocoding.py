@@ -22,7 +22,7 @@ OUTPUT_FILE  = ROOT / "data" / "geocoded_output" / "geocoded_output.gpkg"
 
 # Geocoding settings
 GEOCODER_USER_AGENT  = "kansas_bwa_analysis"
-GEOCODE_DELAY        = 1        # seconds between requests to respect API limits
+GEOCODE_DELAY        = 1.5        # seconds between requests to respect API limits
 GEOCODE_LOG_INTERVAL = 50       # log progress every N rows
 
 # Projection settings
@@ -74,20 +74,20 @@ def geocode_all(df):
 
     # Prepare county_clean column for geocoding query
     df["county_clean"] = (
-        df["Counties Served"]
+        df["County"]
         .str.split(",")
         .str[0]
         .str.strip()
         .str.upper()
     )
 
-    geolocator = Nominatim(user_agent=GEOCODER_USER_AGENT)
+    geolocator = Nominatim(user_agent=GEOCODER_USER_AGENT, timeout=10)
 
     df["lat"] = None
     df["lon"] = None
 
     for idx, row in df.iterrows():
-        lat, lon = geocode_city(geolocator, row["Cities Served"], row["county_clean"])
+        lat, lon = geocode_city(geolocator, row["City"], row["county_clean"])
         df.at[idx, "lat"] = lat
         df.at[idx, "lon"] = lon
         time.sleep(GEOCODE_DELAY)
@@ -101,7 +101,7 @@ def geocode_all(df):
     logger.info(f"Geocoding complete — Success: {success} | Failed: {failed}")
 
     if failed > 0:
-        failed_rows = df[df["lat"].isna()][["Cities Served", "county_clean"]].drop_duplicates()
+        failed_rows = df[df["lat"].isna()][["City", "county_clean"]].drop_duplicates()
         logger.warning(f"Failed geocoding rows:\n{failed_rows.to_string()}")
 
     return df
