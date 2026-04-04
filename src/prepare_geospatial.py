@@ -1,24 +1,31 @@
 """
-Phase 6: This Phase Data Preparation for Geospatial Analysis
+Phase 6: Data Preparation for Geospatial Analysis
 Processes merged advisory data, matches with PWS data using exact
-and fuzzy matching, and prepares the final dataset for geospatial analysis.
+and fuzzy matching, classifies advisory categories using Gemini LLM,
+and prepares the final dataset for geospatial analysis.
 """
 
 import re
 import ast
 import logging
 import pandas as pd
+from tqdm import tqdm
 from pathlib import Path
+import google.generativeai as genai
 from rapidfuzz import process, fuzz
 from logger_config import setup_logger
+
+tqdm.pandas()   
 
 # -------- Configuration --------
 
 ROOT = Path(__file__).resolve().parent.parent
 
 INPUT_JSON       = ROOT / "data" / "merged_json_output" / "merged_output.json"
-PWS_EXCEL        = ROOT / "Data_archive" / "SDWIS 2023 KS Water System Summary.xlsx"
-PWS_EXCEL_SKIPROWS = 4
+# PWS_EXCEL        = ROOT / "Data_archive" / "SDWIS 2025 KS Water System Summary.xlsx"
+# PWS_EXCEL_SKIPROWS = 4
+PWS_CSV     = ROOT / "Data_archive" / "SDWIS 2025 KS Water System Summary.csv"
+CCR_EXCEL   = ROOT / "Data_archive" / "BWA_KS.xlsx"
 
 OUTPUT_FOLDER    = ROOT / "data" / "geospatial_ready"
 
@@ -32,6 +39,9 @@ OUT_FINAL               = OUTPUT_FOLDER / "final_for_geospatial.xlsx"
 # Thresholds
 RESCIND_WINDOW_DAYS  = 60    # max days between issued and rescinded to be considered a match
 FUZZY_SCORE_THRESHOLD = 90   # minimum fuzzy match score (0-100) to accept a PWS match
+
+# Gemini API
+GEMINI_API_KEY = "YOUR_API_KEY_HERE"  # replace with your key
 
 # -------- Logger --------
 
@@ -279,11 +289,19 @@ def load_pws_data(path, skiprows):
 
 # -------- Phase 5: Exact Matching --------
 
+# MATCH_COLS = [
+#     "url_issued", "PWS ID", "PWS_clean", "PWS Name",
+#     "issued_date_issued", "rescinded_date_rescinded", "Population Served Count",
+#     "city_cleaned_issued", "city_norm", "Cities Served", "city",
+#     "Counties Served", "county",
+# ]
+
 MATCH_COLS = [
-    "url_issued", "PWS ID", "PWS_clean", "PWS Name",
-    "issued_date_issued", "rescinded_date_rescinded", "Population Served Count",
-    "city_cleaned_issued", "city_norm", "Cities Served", "city",
-    "Counties Served", "county",
+    "url_issued", "PWS ID", "PWS_clean", "PWS Name", "PWS Type",
+    "issued_date_issued", "rescinded_date_rescinded", "combined_context_issued",
+    "extracted_entities_advisory_reason_issued" ,"year_issued", "duration_days", 
+    "Population Served Count", "city_cleaned_issued", "city_norm", "Cities Served", 
+    "city", "Counties Served", "county", "# of Violations"
 ]
 
 
@@ -332,6 +350,114 @@ def fuzzy_match(advisory_df, pws_df, matched_set):
 
     return fuzzy_full[MATCH_COLS]
 
+# -------- Phase 6: CCR Join --------
+ 
+def join_ccr(final_df, ccr_path):
+    """Joins the latest CCR record per Federal ID onto the matched dataset."""
+    logger.info(f"Loading CCR data from: {ccr_path}")
+    ccr_df = pd.read_excel(ccr_path)
+ 
+    ccr_latest = (
+        ccr_df
+        .sort_values("Year", ascending=False)
+        .drop_duplicates(subset=["Federal ID"])
+    )
+ 
+    merged = final_df.merge(
+        ccr_latest[["Federal ID", "PWS", "District"]].rename(columns={
+            "PWS":      "PWS_CCR",
+            "District": "District_CCR",
+        }),
+        left_on="PWS ID",
+        right_on="Federal ID",
+        how="left",
+    )
+    logger.info(f"Rows after CCR join : {len(merged)}")
+    return merged
+
+# -------- Phase 7: LLM Classification (Gemini) --------
+ 
+CATEGORIES = """
+- infrastructure_failure: line break, main break, waterline break, piping break,
+  damage to water main, leak in distribution system, cross connection found,
+  broken valve, water main break, leak had to turn water off, leak causing pressure loss
+ 
+- contamination_confirmed: E. coli, coliform, positive bact sample,
+  nitrate, manganese, contaminated clearwell, confirmed contamination,
+  bacteriological contamination, high nitrate advisory
+ 
+- equipment_failure: pump failure, chlorine pump failure, low chlorine residuals,
+  loss of chlorine residuals, cl residual, failure to maintain chlorine,
+  SCADA issues causing pressure loss, mechanical failure, untreated water,
+  water treatment issues, failure to maintain proper treatment, system failure,
+  chlorine injector failure, mechanical malfunction in treatment plant,
+  loss of residuals, chlorine residual loss
+ 
+- natural_disaster: flood, lightning, storm, weather, power outage,
+  turbidity, flooded well, stream advisory, flooding turbidity,
+  flooding causing pressure loss, lightning causing pressure loss
+ 
+- planned_maintenance: planned water shut off, scheduled repairs,
+  valve replacement, system maintenance, shut down for repairs,
+  water system out of service, line repair, maintenance causing pressure loss
+ 
+- other: unknown water quality, precaution, risk of contamination,
+  purchases from another system, absence of bacteria, bow directive,
+  do not drink order, part of another system advisory, not placed at risk,
+  loss of pressure with unknown cause
+"""
+
+def build_classifier(api_key: str):
+    """Initialises Gemini and returns the classify function."""
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("models/gemini-2.5-flash")
+ 
+    def classify_from_context(context: str) -> str:
+        if pd.isna(context) or str(context).strip() == "":
+            return "other"
+ 
+        prompt = f"""Classify the root cause of this boil water advisory into exactly one category.
+ 
+CATEGORIES:
+{CATEGORIES}
+ 
+RULES:
+- Return ONLY the category name, nothing else
+- Pick the ROOT cause (e.g. if flooding caused pressure loss → natural_disaster)
+- If multiple causes, pick the most specific one
+ 
+Advisory context: {context}"""
+ 
+        try:
+            response = model.generate_content(prompt)
+            return response.text.strip()
+        except Exception as e:
+            logger.warning(f"LLM error: {e}")
+            return "other"
+ 
+    return classify_from_context
+
+# -------- Phase 8: Final Column Rename & Export --------
+ 
+RENAME_COLS = {
+    "url_issued"                              : "Advisory_Notice_URL",
+    "PWS ID"                                  : "Federal_ID",
+    "PWS Name"                                : "PWS_Name",
+    "PWS Type"                                : "PWS_Type",
+    "issued_date_issued"                      : "Issues_Date",
+    "rescinded_date_rescinded"                : "Rescinded_Date",
+    "combined_context_issued"                 : "Advisory_Context",
+    "extracted_reason"                        : "Advisory_Reason",
+    "Category_Reason_from_LLM"               : "Advisory_Category",
+    "year_issued"                             : "Year",
+    "duration_days"                           : "Advisory_Duration",
+    "Population Served Count"                 : "Population_Served",
+    "District_CCR"                            : "District",
+    "Cities Served"                           : "City",
+    "Counties Served"                         : "County",
+    "# of Violations"                         : "No._of_Violations",
+}
+
 
 # -------- Main --------
 
@@ -355,14 +481,12 @@ def main():
     df["city_cleaned"] = df["city"].apply(clean_for_matching)
 
     # --- Phase 3: To date processing and issued/rescinded merge ---
-    logger.info("Phase 6.3: Splitting issued and rescinded records")
+    logger.info("Phase 6.3: Splitting and merging issued / rescinded records")
     issued_df, rescinded_df = split_issued_rescinded(df)
 
     # issued_df["city_cleaned_issued"] = issued_df["city_cleaned"]
 
-    logger.info("Phase 6.3: Merging issued and rescinded records")
     merged, closest = merge_issued_rescinded(issued_df, rescinded_df)
-
     merged.to_excel(OUT_ISSUED_RESCINDED, index=False)
     logger.info(f"Saved: {OUT_ISSUED_RESCINDED}")
 
@@ -372,11 +496,15 @@ def main():
 
     # --- Phase 4: To Load and normalize PWS data ---
     logger.info("Phase 6.4: Loading PWS reference data")
-    pws_df = load_pws_data(PWS_EXCEL, PWS_EXCEL_SKIPROWS)
+    # pws_df = load_pws_data(PWS_EXCEL, PWS_EXCEL_SKIPROWS)
+    pws_df = load_pws_data(PWS_CSV)
 
     # --- Phase 5 & 6: To Normalize, exact match, fuzzy match ---
     logger.info("Phase 6.5: Normalizing city names and running exact match")
     closest_selected = closest_selected.copy()
+    closest_selected["city_cleaned_issued"] = (
+        closest_selected["city_cleaned_issued"].str.strip().str.lower()
+    )
     closest_selected["city_norm"] = closest_selected["city_cleaned_issued"].astype(str).apply(normalize_name)
 
     exact_matches = exact_match(closest_selected, pws_df)
@@ -388,7 +516,26 @@ def main():
     # --- Combine and save final output ---
     logger.info("Phase 6.7: Combining exact and fuzzy matches")
     final = pd.concat([exact_matches, fuzzy_matches], ignore_index=True)
-    final.to_excel(OUT_FINAL, index=False)
+
+    # --- CCR join ---
+    logger.info("Phase 6.8: Joining CCR data")
+    final = join_ccr(final, CCR_EXCEL)
+
+    # Extract first advisory reason (vectorized)
+    final["extracted_reason"] = final["extracted_entities_advisory_reason_issued"].str[0]
+
+    # --- LLM classification ---
+    logger.info("Phase 6.9: Classifying advisory categories with Gemini")
+    classify_from_context = build_classifier(GEMINI_API_KEY)
+    final["Category_Reason_from_LLM"] = (
+        final["combined_context_issued"].progress_apply(classify_from_context)
+    )
+    logger.info(f"\nCategory distribution:\n{final['Category_Reason_from_LLM'].value_counts()}")
+
+    # --- Rename columns & export ---
+    logger.info("Phase 6.10: Renaming columns and saving final output")
+    geospatial_ready = final.rename(columns=RENAME_COLS)[list(RENAME_COLS.values())]
+    geospatial_ready.to_excel(OUT_FINAL, index=False)
     logger.info(f"Saved: {OUT_FINAL}")
 
     logger.info("=" * 60)
