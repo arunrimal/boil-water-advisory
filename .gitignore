@@ -79,6 +79,7 @@ temp/
 
 # terraform service account in google
 credentials.json
+streamlit-terraform-f199dbe60379.json
 .terraform/
 *.tfstate
 *.tfstate.backup
