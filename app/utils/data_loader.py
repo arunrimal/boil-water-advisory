@@ -11,9 +11,14 @@ from pathlib import Path
 from typing import Optional, Dict, List, Tuple, Any
 from shapely import wkt
 from datetime import datetime
+import os
 import warnings
 
 warnings.filterwarnings('ignore', category=UserWarning)
+
+
+ENV = os.getenv("ENV", "local")
+GCP_BUCKET = "bwa-streamlit-app-data"
 
 
 # =============================================================================
@@ -26,10 +31,14 @@ def get_project_root() -> Path:
 
 def get_data_path() -> Path:
     """Get path to geocoded output geopackage"""
+    if ENV == "cloud":
+        return f"gs://{GCP_BUCKET}/outputs/geocoded_output.gpkg"
     return get_project_root() / "outputs" / "geocoded_output.gpkg"
 
 def get_county_shapefile_path() -> Optional[Path]:
     """Get path to US counties shapefile if it exists"""
+    if ENV == "cloud":
+        return f"gs://{GCP_BUCKET}/tl_2024_us_county/tl_2024_us_county.shp"
     shp_path = get_project_root() / "tl_2024_us_county" / "tl_2024_us_county.shp"
     return shp_path if shp_path.exists() else None
 

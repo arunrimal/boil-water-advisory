@@ -78,9 +78,9 @@ temp/
 
 
 # terraform service account in google
-credentials.json
-streamlit-terraform-f199dbe60379.json
-.terraform/
-*.tfstate
-*.tfstate.backup
-.terraform.lock.hcl
+terraform/credentials.json
+terraform/streamlit-terraform-f199dbe60379.json
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl

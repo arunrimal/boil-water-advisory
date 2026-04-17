@@ -6,6 +6,8 @@ from shapely import wkt
 from datetime import datetime
 import time
 from utils.styles import load_css, load_footer
+from utils.data_loader import load_bwa_data, get_data_path
+import os
 
 load_css()
 
@@ -24,27 +26,31 @@ st.set_page_config(
 # =============================================================================
 # DATA LOADING
 # =============================================================================
-ROOT          = Path(__file__).resolve().parent
-while not (ROOT / "outputs").exists():
-    ROOT = ROOT.parent
+# ROOT          = Path(__file__).resolve().parent
+# while not (ROOT / "outputs").exists():
+#     ROOT = ROOT.parent
 
-OUTPUTS_FILE  = ROOT / "outputs" / "geocoded_output.gpkg"
-COUNTIES_SHP  = ROOT / "tl_2024_us_county" / "tl_2024_us_county.shp"
+# OUTPUTS_FILE  = ROOT / "outputs" / "geocoded_output.gpkg"
+# COUNTIES_SHP  = ROOT / "tl_2024_us_county" / "tl_2024_us_county.shp"
 
-data_exists = OUTPUTS_FILE.exists()
+# data_exists = OUTPUTS_FILE.exists()
+
+
+# Replace all path logic with just:
+data_path = get_data_path()
+data_exists = True if os.getenv("ENV") == "cloud" else Path(str(data_path)).exists()
+
+
+
 
 @st.cache_data(show_spinner=False)
 def load_summary():
     """Load minimal summary stats for landing page metrics."""
-    if not OUTPUTS_FILE.exists():
+    gdf = load_bwa_data()
+    
+    if gdf is None:
         return None
-    gdf = gpd.read_file(OUTPUTS_FILE).to_crs(epsg=4326)
-    gdf["Population_Served"] = (
-        gdf["Population_Served"].astype(str)
-        .str.replace(",", "", regex=False)
-        .str.replace(" ", "", regex=False)
-        .astype(float)
-    )
+    
     return {
         "total"     : len(gdf),
         "counties"  : gdf["County"].nunique(),
@@ -52,12 +58,11 @@ def load_summary():
         "years"     : f"{int(gdf['Year'].min())}–{int(gdf['Year'].max())}",
         "year_count": gdf["Year"].nunique(),
         "pop"       : int(gdf["Population_Served"].sum()),
-        "updated"   : datetime.fromtimestamp(
-                          OUTPUTS_FILE.stat().st_mtime
-                      ).strftime("%Y-%m-%d %H:%M"),
+        "updated"   : datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
 
 summary = load_summary()
+data_exists = summary is not None
 
 
 # =============================================================================
