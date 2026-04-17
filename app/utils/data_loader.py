@@ -12,13 +12,30 @@ from typing import Optional, Dict, List, Tuple, Any
 from shapely import wkt
 from datetime import datetime
 import os
+import gcsfs
 import warnings
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
 
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+
 ENV = os.getenv("ENV", "local")
 GCP_BUCKET = "bwa-streamlit-app-data"
+
+CREDENTIALS_PATH = os.getenv(
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    Path(__file__).resolve().parent.parent / "credentials.json"
+)
+
+def get_gcs_filesystem():
+    """Get authenticated GCS filesystem"""
+    if ENV == "cloud":
+        return gcsfs.GCSFileSystem(token=str(CREDENTIALS_PATH))
+    return None
 
 
 # =============================================================================
@@ -52,32 +69,33 @@ def load_bwa_data(
     apply_preprocessing: bool = True,
     validate: bool = True
 ) -> Optional[gpd.GeoDataFrame]:
-    """
-    Load BWA data from geocoded_output.gpkg with caching.
-    Follows notebook loading pattern exactly.
-    """
+    """Load BWA data from geocoded_output.gpkg with caching."""
     data_path = get_data_path()
-    
-    if not data_path.exists():
+
+    # Check existence for local only
+    if ENV == "local" and not Path(str(data_path)).exists():
         st.error(f"❌ Data file not found: {data_path}")
-        st.error(f"Expected location: {data_path.absolute()}")
         return None
-    
+
     try:
-        # Load geopackage (notebook pattern)
-        gdf = gpd.read_file(data_path)
-        
-        # Convert to geographic CRS (EPSG:4326) - notebook pattern
+        # Use GCS filesystem for cloud
+        if ENV == "cloud":
+            fs = get_gcs_filesystem()
+            with fs.open(str(data_path), "rb") as f:
+                gdf = gpd.read_file(f)
+        else:
+            gdf = gpd.read_file(data_path)
+
         gdf = gdf.to_crs(epsg=4326)
-        
+
         if apply_preprocessing:
             gdf = _preprocess_data(gdf)
-        
+
         if validate:
             _validate_data(gdf)
-            
+
         return gdf
-        
+
     except Exception as e:
         st.error(f"❌ Error loading BWA data: {str(e)}")
         import traceback
@@ -256,22 +274,25 @@ def _validate_data(gdf: gpd.GeoDataFrame) -> None:
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def load_kansas_counties() -> Optional[gpd.GeoDataFrame]:
-    """
-    Load Kansas county boundaries from shapefile.
-    Notebook pattern: filter STATEFP == "20"
-    """
+    """Load Kansas county boundaries from shapefile."""
     shp_path = get_county_shapefile_path()
-    
+
     if not shp_path:
         st.sidebar.info("County shapefile not found - county maps disabled")
         return None
-    
+
     try:
-        us_counties = gpd.read_file(shp_path)
+        if ENV == "cloud":
+            fs = get_gcs_filesystem()
+            with fs.open(str(shp_path), "rb") as f:
+                us_counties = gpd.read_file(f)
+        else:
+            us_counties = gpd.read_file(shp_path)
+
         us_counties = us_counties.to_crs(epsg=4326)
-        # Filter to Kansas (STATEFP = 20) - notebook pattern
         ks_counties = us_counties[us_counties["STATEFP"] == "20"].copy()
         return ks_counties
+
     except Exception as e:
         st.sidebar.warning(f"Could not load counties: {e}")
         return None

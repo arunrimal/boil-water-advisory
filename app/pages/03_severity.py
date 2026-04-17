@@ -4,9 +4,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import geopandas as gpd
-import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from datetime import datetime
 from pathlib import Path
 from shapely import wkt
@@ -186,9 +184,11 @@ fig_choro.update_layout(
     font=dict(color="#e0e0e0"),
     margin=dict(l=0, r=0, t=0, b=0),
     coloraxis_colorbar=dict(
-        title="Severity",
+        title=dict(
+            text="Severity",
+            font=dict(color="#e0e0e0", size=11)
+        ),
         tickfont=dict(color="#e0e0e0", size=10),
-        titlefont=dict(color="#e0e0e0", size=11),
         bgcolor="rgba(0,0,0,0)",
         thickness=12,
         len=0.7,
@@ -267,7 +267,7 @@ if len(bwa_proj) >= 2:
     plt.tight_layout()
  
     st.markdown("<div class='chart-card'>", unsafe_allow_html=True)
-    st.pyplot(fig_kde, use_container_width=True)
+    st.pyplot(fig_kde, width='stretch')
     st.markdown("</div>", unsafe_allow_html=True)
     plt.close()
 else:
@@ -329,9 +329,11 @@ with col_scatter:
                    color="#6e7681", zeroline=False,
                    title="Population Served (log)", title_font=dict(size=11)),
         coloraxis_colorbar=dict(
-            title="Severity",
+            title=dict(
+                text="Severity",
+                font=dict(color="#e0e0e0", size=10)
+            ),
             tickfont=dict(color="#e0e0e0", size=9),
-            titlefont=dict(color="#e0e0e0", size=10),
             bgcolor="rgba(0,0,0,0)",
             thickness=10, len=0.6,
         ),

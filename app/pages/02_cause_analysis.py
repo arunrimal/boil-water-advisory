@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from utils.data_loader import load_bwa_data as load_data, load_kansas_counties as load_counties
 from utils.styles import load_css, load_footer, PLOT_BASE, AXIS_STYLE, CORAL, ORANGE, BLUE, TEAL, GRAY, SEVERITY_COLORSCALE
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 
 load_css()
 
@@ -256,7 +256,7 @@ plt.suptitle(
 plt.tight_layout()
  
 st.markdown("<div class='chart-card'>", unsafe_allow_html=True)
-st.pyplot(fig_facet, use_container_width=True)
+st.pyplot(fig_facet, width='stretch')
 st.markdown("</div>", unsafe_allow_html=True)
 plt.close()
  

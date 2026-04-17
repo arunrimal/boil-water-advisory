@@ -1,11 +1,10 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import geopandas as gpd
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from datetime import datetime
 from pathlib import Path
 from utils.data_loader import load_bwa_data as load_data, load_kansas_counties as load_counties
@@ -267,9 +266,11 @@ if len(repeat_systems) > 0:
         font=dict(color="#e0e0e0"),
         margin=dict(l=0, r=0, t=0, b=0),
         coloraxis_colorbar=dict(
-            title="Severity",
+            title=dict(
+                text="Severity",                
+                font=dict(color="#e0e0e0", size=11)
+            ),
             tickfont=dict(color="#e0e0e0", size=10),
-            titlefont=dict(color="#e0e0e0", size=11),
             bgcolor="rgba(0,0,0,0)",
             thickness=12, len=0.7,
         ),
@@ -337,9 +338,11 @@ with col_timeline:
         yaxis=dict(showgrid=False, color="#e0e0e0",
                    title="", tickfont=dict(size=9)),
         coloraxis_colorbar=dict(
-            title="Days",
+            title=dict(
+                text="Days",
+                font=dict(color="#e0e0e0", size=10)
+            ),
             tickfont=dict(color="#e0e0e0", size=9),
-            titlefont=dict(color="#e0e0e0", size=10),
             bgcolor="rgba(0,0,0,0)",
             thickness=10, len=0.6,
         ),
