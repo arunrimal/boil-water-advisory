@@ -18,11 +18,13 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
-                sh '''
-                    cd app
-                    docker build -t ${IMAGE_NAME} .
-                '''
+                withCredentials([file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDS')]) {
+                    sh '''
+                        cp $GCP_CREDS app/credentials.json
+                        cd app
+                        docker build -t ${IMAGE_NAME} .
+                    '''
+                }
             }
         }
 
