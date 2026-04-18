@@ -84,3 +84,8 @@ terraform/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/.terraform.lock.hcl
+
+
+
+#google cloud credentials for streamlit app
+app/credentials.json
