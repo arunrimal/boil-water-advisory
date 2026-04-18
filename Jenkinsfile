@@ -20,8 +20,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDS')]) {
                     sh '''
-                        ls -la app/
-                        whoami
+                        rm -f app/credentials.json || true
                         cp $GCP_CREDS app/credentials.json
                         cd app
                         docker build -t ${IMAGE_NAME} .
