@@ -275,27 +275,46 @@ def _validate_data(gdf: gpd.GeoDataFrame) -> None:
 @st.cache_data(show_spinner=False, ttl=3600)
 def load_kansas_counties() -> Optional[gpd.GeoDataFrame]:
     """Load Kansas county boundaries from shapefile."""
-    shp_path = get_county_shapefile_path()
-
-    if not shp_path:
-        st.sidebar.info("County shapefile not found - county maps disabled")
-        return None
-
-    try:
-        if ENV == "cloud":
+    
+    if ENV == "cloud":
+        try:
             fs = get_gcs_filesystem()
-            with fs.open(str(shp_path), "rb") as f:
-                us_counties = gpd.read_file(f)
-        else:
+            
+            # Download ALL shapefile components to /tmp/
+            local_dir = "/tmp/tl_2024_us_county"
+            os.makedirs(local_dir, exist_ok=True)
+            
+            extensions = ['.shp', '.dbf', '.shx', '.prj', '.cpg']
+            for ext in extensions:
+                remote = f"{GCP_BUCKET}/tl_2024_us_county/tl_2024_us_county{ext}"
+                local = f"{local_dir}/tl_2024_us_county{ext}"
+                try:
+                    fs.get(remote, local)
+                except:
+                    pass
+            
+            # Now read from local /tmp/ folder
+            us_counties = gpd.read_file(f"{local_dir}/tl_2024_us_county.shp")
+            us_counties = us_counties.to_crs(epsg=4326)
+            ks_counties = us_counties[us_counties["STATEFP"] == "20"].copy()
+            return ks_counties
+
+        except Exception as e:
+            st.sidebar.warning(f"Could not load counties: {e}")
+            return None
+    else:
+        shp_path = get_county_shapefile_path()
+        if not shp_path:
+            st.sidebar.info("County shapefile not found - county maps disabled")
+            return None
+        try:
             us_counties = gpd.read_file(shp_path)
-
-        us_counties = us_counties.to_crs(epsg=4326)
-        ks_counties = us_counties[us_counties["STATEFP"] == "20"].copy()
-        return ks_counties
-
-    except Exception as e:
-        st.sidebar.warning(f"Could not load counties: {e}")
-        return None
+            us_counties = us_counties.to_crs(epsg=4326)
+            ks_counties = us_counties[us_counties["STATEFP"] == "20"].copy()
+            return ks_counties
+        except Exception as e:
+            st.sidebar.warning(f"Could not load counties: {e}")
+            return None
 
 
 # =============================================================================
