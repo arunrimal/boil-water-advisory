@@ -17,12 +17,12 @@ load_css()
 # =============================================================================
 # PAGE CONFIG — must be first Streamlit command
 # =============================================================================
-st.set_page_config(
-    page_title="Cause Analysis",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# st.set_page_config(
+#     page_title="Cause Analysis",
+#     page_icon="💧",
+#     layout="wide",
+#     initial_sidebar_state="collapsed"
+# )
 
 # =============================================================================
 # LOAD DATA
@@ -54,12 +54,37 @@ CATEGORY_COLORS = {
 # =============================================================================
 # PAGE HEADER
 # =============================================================================
-st.markdown("<div class='hero-title' style='font-size:2rem'>Cause-Type Analysis</div>",
-            unsafe_allow_html=True)
+st.markdown(
+    "<div class='hero-title' style='font-size:2rem'>"
+    "AI Powered Analysis"
+    "</div>",
+    unsafe_allow_html=True
+)
 st.markdown(
     "<div class='hero-subtitle' style='font-size:0.95rem'>"
-    "Do different advisory causes cluster in different parts of Kansas? "
-    "Exploring spatial and temporal patterns by Advisory Category."
+    "The LLM was prompted to identify the primary cause from the advisory text "
+    "and assign it to one of six categories. "
+    "Explore how these failure types are distributed across Kansas."
+    "</div>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<div class='info-banner'>"
+    "✨ <b>LLM Classification Pipeline</b> — "
+    "Advisory context sentences were passed to "
+    "<b style='color:#FF8E53'>Gemini 2.5 Flash</b> "
+    "with a structured prompt to classify each notice into one of six root cause categories: "
+    "<span style='color:#FF6B6B'>Infrastructure Failure</span> · "
+    "<span style='color:#FF6B6B'>Contamination Confirmed</span> · "
+    "<span style='color:#FF6B6B'>Equipment Failure</span> · "
+    "<span style='color:#FF6B6B'>Natural Disaster</span> · "
+    "<span style='color:#FF6B6B'>Planned Maintenance</span> · "
+    "<span style='color:#FF6B6B'>Other</span>. "
+    "The model was instructed to identify the <b>root cause</b> — for example, "
+    "if flooding caused pressure loss → "
+    "<span style='color:#FF6B6B'><i>natural_disaster</i></span>, "
+    "not <span style='color:#FF6B6B'><i>infrastructure_failure</i></span>."
     "</div>",
     unsafe_allow_html=True
 )

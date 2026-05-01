@@ -65,9 +65,12 @@ def get_county_shapefile_path() -> Optional[Path]:
 # =============================================================================
 
 @st.cache_data(show_spinner=False, ttl=3600, max_entries=1)
+# def load_bwa_data(
+#     apply_preprocessing: bool = True,
+#     validate: bool = True
+# ) -> Optional[gpd.GeoDataFrame]:
 def load_bwa_data(
-    apply_preprocessing: bool = True,
-    validate: bool = True
+    apply_preprocessing: bool = True
 ) -> Optional[gpd.GeoDataFrame]:
     """Load BWA data from geocoded_output.gpkg with caching."""
     data_path = get_data_path()
@@ -91,8 +94,8 @@ def load_bwa_data(
         if apply_preprocessing:
             gdf = _preprocess_data(gdf)
 
-        if validate:
-            _validate_data(gdf)
+        # if validate:
+        #     _validate_data(gdf)
 
         return gdf
 
@@ -228,8 +231,14 @@ def _compute_severity_metrics(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def _validate_data(gdf: gpd.GeoDataFrame) -> None:
+# def _validate_data(gdf: gpd.GeoDataFrame) -> None:
+def validate_and_warn(gdf: gpd.GeoDataFrame) -> None:
     """Run validation checks based on notebook expectations"""
+
+    # Only run validation once per session
+    if st.session_state.get("data_validated", False):
+        return
+
     issues = []
     
     if len(gdf) == 0:
@@ -263,10 +272,18 @@ def _validate_data(gdf: gpd.GeoDataFrame) -> None:
         if invalid_dur > 0:
             issues.append(f"{invalid_dur} records with invalid duration")
     
-    if issues:
-        for issue in issues:
-            st.warning(f"⚠️ {issue}")
+    # if issues:
+    #     for issue in issues:
+    #         st.warning(f"⚠️ {issue}")
 
+    # Instead of st.warning() — log to sidebar expander only
+    if issues:
+        with st.sidebar:
+            with st.expander("⚠️ Data Validation", expanded=False):
+                for issue in issues:
+                    st.warning(issue)
+    # Mark as validated so it never runs again this session
+    st.session_state["data_validated"] = True
 
 # =============================================================================
 # COUNTY DATA LOADING (notebook pattern)

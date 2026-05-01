@@ -19,12 +19,12 @@ load_css()
 # =============================================================================
 # PAGE CONFIG — must be first Streamlit command
 # =============================================================================
-st.set_page_config(
-    page_title="BWA Dashboard | Overview",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# st.set_page_config(
+#     page_title="BWA Dashboard | Overview",
+#     page_icon="💧",
+#     layout="wide",
+#     initial_sidebar_state="expanded"
+# )
 
 # =============================================================================
 # LOAD DATA
@@ -123,12 +123,16 @@ st.session_state["all_data"] = bwa
 # =============================================================================
 # PAGE HEADER
 # =============================================================================
-st.title("💧 Kansas Boil Water Advisory Dashboard")
+st.markdown(
+    "<div class='hero-title'> Kansas Boil Water Advisory Dashboard</div>",
+    unsafe_allow_html=True
+)
 st.markdown(
     "<div class='info-banner'>"
-    "Real advisory data scraped from the Kansas Department of Health & Environment (KDHE) · "
-    "Geocoded point locations with 10 km impact buffers · "
-    "Severity index = Duration × Population × Violations"
+    "Advisory data scraped from KDHE was geocoded to city centroids and surrounded by a "
+    "<b>10 km impact buffer</b> to approximate each system's distribution zone. "
+    "A composite <b>severity index</b> (Duration × Population × Violations) measures cumulative risk, "
+    "while root causes were <b>AI classified</b> using Gemini 2.5 Flash."
     "</div>",
     unsafe_allow_html=True
 )

@@ -16,12 +16,12 @@ load_css()
 # =============================================================================
 # PAGE CONFIG — must be first Streamlit command
 # =============================================================================
-st.set_page_config(
-    page_title="Severity Analysis",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# st.set_page_config(
+#     page_title="Severity Analysis",
+#     page_icon="💧",
+#     layout="wide",
+#     initial_sidebar_state="collapsed"
+# )
 
 # =============================================================================
 # LOAD DATA
@@ -39,12 +39,14 @@ if bwa is None:
 # =============================================================================
 # PAGE HEADER
 # =============================================================================
-st.markdown("<div class='hero-title' style='font-size:2rem'>Repeat Offenders</div>",
+st.markdown("<div class='hero-title' style='font-size:2rem'>Repeat PWS Offenders</div>",
             unsafe_allow_html=True)
 st.markdown(
     "<div class='hero-subtitle' style='font-size:0.95rem'>"
-    "Which water systems are chronically failing? "
-    "Identifying systems with multiple advisories and whether they cluster geographically."
+    "A single advisory can be an isolated incident, but a system appearing repeatedly "
+    "across multiple years tells a different story. "
+    "Identifying repeat offender systems and examining whether they are "
+    "geographically concentrated across Kansas."
     "</div>",
     unsafe_allow_html=True
 )

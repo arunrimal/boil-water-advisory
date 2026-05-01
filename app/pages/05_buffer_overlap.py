@@ -16,12 +16,12 @@ load_css()
 # =============================================================================
 # PAGE CONFIG — must be first Streamlit command
 # =============================================================================
-st.set_page_config(
-    page_title="Severity Analysis",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# st.set_page_config(
+#     page_title="Severity Analysis",
+#     page_icon="💧",
+#     layout="wide",
+#     initial_sidebar_state="collapsed"
+# )
 
 # =============================================================================
 # LOAD DATA
@@ -42,13 +42,13 @@ CRS_PROJECTED = "EPSG:32614"
 # =============================================================================
 # PAGE HEADER
 # =============================================================================
-st.markdown("<div class='hero-title' style='font-size:2rem'>Buffer Overlap Analysis</div>",
+st.markdown("<div class='hero-title' style='font-size:2rem'>Zones Overlap Analysis</div>",
             unsafe_allow_html=True)
 st.markdown(
     "<div class='hero-subtitle' style='font-size:0.95rem'>"
-    "Where did multiple water systems simultaneously issue advisories "
-    "affecting the same geographic area? "
-    "Each system has a 10 km impact buffer — overlaps reveal shared risk zones."
+    "When two water systems issue advisories simultaneously, their impact areas may overlap — "
+    "exposing the same residents to multiple concurrent advisories. "
+    "This examines where those shared risk zones occurred across Kansas."
     "</div>",
     unsafe_allow_html=True
 )
@@ -365,15 +365,51 @@ if overlap_gdf is not None and len(overlap_gdf) > 0:
             hovertemplate="<b>%{x}</b><br>Days: %{y}<extra></extra>",
         ))
  
+        # fig_bar.update_layout(
+        #     paper_bgcolor="rgba(0,0,0,0)",
+        #     plot_bgcolor="rgba(0,0,0,0)",
+        #     font=dict(color="#e0e0e0", family="Inter, sans-serif"),
+        #     title=dict(text="Per-Pair Comparison",
+        #                font=dict(color="#e0e0e0", size=12), x=0.5),
+        #     xaxis=dict(
+        #         showgrid=False, color="#6e7681",
+        #         tickfont=dict(size=9), tickangle=-10
+        #     ),
+        #     yaxis=dict(
+        #         showgrid=True, gridcolor="rgba(255,255,255,0.05)",
+        #         color="#FF6B6B", title="Area (km²)",
+        #         title_font=dict(color="#FF6B6B", size=11),
+        #         zeroline=False,
+        #     ),
+        #     yaxis2=dict(
+        #         overlaying="y", side="right",
+        #         color="#4A9EFF", title="Concurrent Days",
+        #         title_font=dict(color="#4A9EFF", size=11),
+        #         showgrid=False, zeroline=False,
+        #     ),
+        #     barmode="group",
+        #     bargap=0.2,
+        #     legend=dict(
+        #         font=dict(color="#e0e0e0", size=10),
+        #         bgcolor="rgba(0,0,0,0)",
+        #         orientation="h",
+        #         yanchor="bottom", y=1.02,
+        #         xanchor="right", x=1,
+        #     ),
+        #     margin=dict(l=10, r=50, t=60, b=10),
+        #     height=400,
+        # )
+
         fig_bar.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#e0e0e0", family="Inter, sans-serif"),
             title=dict(text="Per-Pair Comparison",
-                       font=dict(color="#e0e0e0", size=12), x=0.5),
+                    font=dict(color="#e0e0e0", size=12), x=0.5),
             xaxis=dict(
                 showgrid=False, color="#6e7681",
-                tickfont=dict(size=9), tickangle=-10
+                tickfont=dict(size=9),
+                tickangle=-20,          # ← more angle to avoid overlap
             ),
             yaxis=dict(
                 showgrid=True, gridcolor="rgba(255,255,255,0.05)",
@@ -393,12 +429,14 @@ if overlap_gdf is not None and len(overlap_gdf) > 0:
                 font=dict(color="#e0e0e0", size=10),
                 bgcolor="rgba(0,0,0,0)",
                 orientation="h",
-                yanchor="bottom", y=1.02,
+                yanchor="bottom", y=1.08,   # ← pushed higher above title
                 xanchor="right", x=1,
             ),
-            margin=dict(l=10, r=50, t=60, b=10),
-            height=400,
+            margin=dict(l=10, r=50, t=90, b=80),  # ← more top for legend, more bottom for x labels
+            height=450,                             # ← slightly taller
         )
+
+
         st.markdown("<div class='chart-card'>", unsafe_allow_html=True)
         st.plotly_chart(fig_bar, width='stretch',
                         config={"displayModeBar": False})

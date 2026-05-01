@@ -17,12 +17,12 @@ load_css()
 # =============================================================================
 # PAGE CONFIG — must be first Streamlit command
 # =============================================================================
-st.set_page_config(
-    page_title="Severity Analysis",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# st.set_page_config(
+#     page_title="Severity Analysis",
+#     page_icon="💧",
+#     layout="wide",
+#     initial_sidebar_state="collapsed"
+# )
 
 # =============================================================================
 # LOAD DATA
@@ -42,8 +42,14 @@ st.markdown("<div class='hero-title' style='font-size:2rem'>Severity Analysis</d
             unsafe_allow_html=True)
 st.markdown(
     "<div class='hero-subtitle' style='font-size:0.95rem'>"
-    "Where is the cumulative public health risk highest? "
-    "Severity = Advisory Duration × Population Served × Number of Violations."
+    "Not all advisories carry the same public health risk. "
+    "A short advisory affecting a small rural system is fundamentally different "
+    "from a prolonged advisory affecting thousands of residents with multiple violations. "
+    "To capture this, a composite <b>severity index</b> was constructed as "
+    "<span style='color:#FF6B6B'><b>Duration</b></span> × "
+    "<span style='color:#FF6B6B'><b>Population Served</b></span> × "
+    "<span style='color:#FF6B6B'><b>Number of Violations</b></span> — "
+    "identifying where the cumulative risk is highest across Kansas."
     "</div>",
     unsafe_allow_html=True
 )
@@ -219,10 +225,12 @@ if len(bwa_proj) >= 2:
     y_coord = bwa_proj.geometry.y.values
     coords  = np.vstack([x_coord, y_coord])
  
+    bwa_proj["severity_index_log"] = np.log1p(bwa_proj["severity_index"])
+
     kde = gaussian_kde(
         coords,
-        weights=bwa_proj["severity_index"],
-        bw_method="scott"
+        weights=bwa_proj["severity_index_log"],
+        bw_method=0.3
     )
  
     xmin, ymin, xmax, ymax = bwa_proj.total_bounds
