@@ -209,7 +209,7 @@ st.plotly_chart(fig_map, width='stretch', config={"displayModeBar": False})
 st.markdown("</div>", unsafe_allow_html=True)
  
 # =============================================================================
-# VIZ 2 — Faceted map (from your notebook — one subplot per category)
+# VIZ 2 — Faceted map (from notebook — one subplot per category)
 # =============================================================================
 st.markdown("<div class='section-label'>Faceted Map — One Panel per Category</div>",
             unsafe_allow_html=True)

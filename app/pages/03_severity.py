@@ -96,7 +96,7 @@ filtered["severity_index"] = (
 )
 filtered["severity_log"] = np.log1p(filtered["severity_index"])
  
-# -- County-level aggregation (from your notebook) --
+# -- County-level aggregation (from notebook) --
 county_severity = (
     filtered.groupby("County")
     .agg(
@@ -205,7 +205,7 @@ st.plotly_chart(fig_choro, width='stretch', config={"displayModeBar": False})
 st.markdown("</div>", unsafe_allow_html=True)
  
 # =============================================================================
-# VIZ 2 — KDE Weighted Hotspot Map (from your notebook)
+# VIZ 2 — KDE Weighted Hotspot Map (from notebook)
 # =============================================================================
 st.markdown("<div class='section-label'>Severity-Weighted Hotspot Map (KDE)</div>",
             unsafe_allow_html=True)
