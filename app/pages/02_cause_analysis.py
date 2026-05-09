@@ -240,7 +240,10 @@ for i, cat in enumerate(categories):
 
 
     # County base layer
-    ks_counties.plot(ax=ax, color="#03132E80", edgecolor="#ced4df", linewidth=0.5)
+    if ks_counties is None:
+        st.warning("County boundaries not available")
+    else:
+        ks_counties.plot(ax=ax, color="#03132E80", edgecolor="#ced4df", linewidth=0.5)
  
     # Advisory points sized by population
     if len(subset) > 0:
