@@ -36,17 +36,19 @@ def get_gcs_filesystem():
     """Get authenticated GCS filesystem"""
     if ENV == "cloud":
         try:
+            # Check if secrets exist
+            if "gcp" not in st.secrets:
+                st.sidebar.error("❌ No GCP secrets found!")
+                return None
+                
             credentials = service_account.Credentials.from_service_account_info(
                 st.secrets["gcp"]
             )
+            st.sidebar.success("✅ GCP authenticated!")
             return gcsfs.GCSFileSystem(token=credentials)
         except Exception as e:
-            st.sidebar.error(f"❌ GCS Auth error: {e}")  # show real error!
-            try:
-                return gcsfs.GCSFileSystem(token=str(CREDENTIALS_PATH))
-            except Exception as e2:
-                st.sidebar.error(f"❌ Fallback auth error: {e2}")
-                return None
+            st.sidebar.error(f"❌ GCS Auth error: {e}")
+            return None
     return None
 
 
