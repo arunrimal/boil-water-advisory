@@ -10,5 +10,3 @@ streamlit==1.56.0
 google-cloud-storage
 google-auth
 google-auth-oauthlib
-pyogrio
-fiona
