@@ -4,6 +4,7 @@ Updated based on notebook geospatial analysis patterns
 """
 
 import streamlit as st
+from google.oauth2 import service_account
 import geopandas as gpd
 import pandas as pd
 import numpy as np
@@ -34,7 +35,15 @@ CREDENTIALS_PATH = os.getenv(
 def get_gcs_filesystem():
     """Get authenticated GCS filesystem"""
     if ENV == "cloud":
-        return gcsfs.GCSFileSystem(token=str(CREDENTIALS_PATH))
+        try:
+            # Trying Streamlit secrets first (Streamlit Cloud)
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp"]
+            )
+            return gcsfs.GCSFileSystem(token=credentials)
+        except:
+            # Fall back to credentials.json (Docker/GCP VM)
+            return gcsfs.GCSFileSystem(token=str(CREDENTIALS_PATH))
     return None
 
 
