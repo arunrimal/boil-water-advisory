@@ -45,7 +45,7 @@ def get_gcs_filesystem():
             
             credentials = service_account.Credentials.from_service_account_info(
                 st.secrets["gcp"],
-                scopes=scopes  # ← add this!
+                scopes=scopes  # ← Important for GCS access
             )
             return gcsfs.GCSFileSystem(token=credentials)
         except Exception as e:
