@@ -36,21 +36,22 @@ def get_gcs_filesystem():
     """Get authenticated GCS filesystem"""
     if ENV == "cloud":
         try:
-            # Check if secrets exist
-            if "gcp" not in st.secrets:
-                st.sidebar.error("❌ No GCP secrets found!")
-                return None
-                
+          
+            # Add required scopes!
+            scopes = [
+                "https://www.googleapis.com/auth/devstorage.read_only",
+                "https://www.googleapis.com/auth/cloud-platform"
+            ]
+            
             credentials = service_account.Credentials.from_service_account_info(
-                st.secrets["gcp"]
+                st.secrets["gcp"],
+                scopes=scopes  # ← add this!
             )
-            st.sidebar.success("✅ GCP authenticated!")
             return gcsfs.GCSFileSystem(token=credentials)
         except Exception as e:
             st.sidebar.error(f"❌ GCS Auth error: {e}")
             return None
     return None
-
 
 # =============================================================================
 # PATH CONFIGURATION (from notebook pattern)
